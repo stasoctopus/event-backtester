@@ -20,6 +20,24 @@ from .engine import (
     run_backtest,
     size_position,
 )
+from .futures import (
+    FuturesConfig,
+    FuturesResult,
+    FuturesSegment,
+    FuturesSignal,
+    FuturesStrategy,
+    FuturesTrade,
+    run_futures_backtest,
+)
+from .portfolio import (
+    PortfolioConfig,
+    PositionResult,
+    carry_leg_returns,
+    combine_daily,
+    portfolio_metrics,
+    run_position_backtest,
+    to_daily,
+)
 from .metrics import (
     calmar,
     max_drawdown,
@@ -64,6 +82,22 @@ __all__ = [
     "Backtester",
     "run_backtest",
     "size_position",
+    # futures execution (opt-in limit-order / session-aware engine)
+    "FuturesConfig",
+    "FuturesSignal",
+    "FuturesStrategy",
+    "FuturesTrade",
+    "FuturesSegment",
+    "FuturesResult",
+    "run_futures_backtest",
+    # portfolio / target-weight execution (opt-in multi-leg weight engine)
+    "PortfolioConfig",
+    "PositionResult",
+    "run_position_backtest",
+    "to_daily",
+    "carry_leg_returns",
+    "combine_daily",
+    "portfolio_metrics",
     # metrics
     "total_return",
     "win_rate",
