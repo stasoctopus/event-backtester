@@ -1,0 +1,96 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eventbt"
+version = "0.1.0"
+description = "An event-driven, tick-accurate backtesting engine."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "eventbt contributors" }]
+keywords = ["backtesting", "trading", "quant", "event-driven", "tick"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Typing :: Typed",
+]
+# Core runtime deps only. pandas is pinned >=2.2 because the metrics module relies
+# on the "ME" (month-end) resample alias introduced there. matplotlib and yfinance
+# are deliberately NOT here -- importing the library must stay lightweight.
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.2",
+]
+
+[project.optional-dependencies]
+# Plotting for the example script (lazy-imported, never required to use the engine).
+plot = ["matplotlib>=3.7"]
+# Optional public-market data loader.
+data = ["yfinance>=0.2"]
+# Everything needed to develop, lint, type-check and test.
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.5",
+    "mypy>=1.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/stasoctopus/event-backtester"
+Repository = "https://github.com/stasoctopus/event-backtester"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eventbt"]
+
+# ---------------------------------------------------------------------------
+# Tooling configuration
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "examples"]
+
+[tool.ruff.lint]
+# A pragmatic, modern rule set: pycodestyle/pyflakes, isort, bugbear, pyupgrade,
+# comprehensions, simplify, naming.
+select = ["E", "F", "I", "B", "UP", "C4", "SIM", "N"]
+ignore = [
+    "E741",  # ambiguous variable name -- fine for short math locals (e.g. r)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]  # allow long known-input comments in tests
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --cov=eventbt --cov-report=term-missing"
+pythonpath = ["src"]
+
+# mypy is configured to be strict about OUR code but tolerant of third-party
+# packages whose type stubs are absent or leaky (pandas, numpy, matplotlib,
+# yfinance). A blanket --strict would drown the signal in false positives from
+# those stubs and turn the CI badge red for no real defect.
+# python_version is 3.12 so mypy can parse the PEP 695 `type` statements in the
+# bundled numpy 2.x stubs (parsing them under 3.10 errors out). Our own code targets
+# 3.10+ (enforced at runtime via requires-python and by ruff's py310 target).
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_optional = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+module = ["pandas.*", "numpy.*", "matplotlib.*", "yfinance.*"]
+ignore_missing_imports = true

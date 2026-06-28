@@ -1,0 +1,10 @@
+# Development dependencies. Installs the core requirements plus the test,
+# lint, type-check and plotting tooling. The canonical source of truth is
+# pyproject.toml; this file mirrors the `dev` + `plot` extras for convenience:
+#   pip install -e .[dev,plot]
+-r requirements.txt
+matplotlib>=3.7
+pytest>=7.4
+pytest-cov>=4.1
+ruff>=0.5
+mypy>=1.8
