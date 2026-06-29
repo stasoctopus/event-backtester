@@ -37,10 +37,13 @@ Public surface
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
+
+FundingFn = Callable[[pd.DatetimeIndex, pd.Series], pd.Series]
 
 __all__ = [
     "PortfolioConfig",
@@ -66,27 +69,28 @@ class PortfolioConfig:
     fee_bps_side: float = 2.0
     slip_bps: float = 1.0
     carry_cost_day: float = 2e-5
-    months_per_year: int = 12          # Sharpe annualisation: monthly -> *sqrt(12)
-    days_per_year: float = 365.25      # CAGR year length
-    capital_mode: str = "reinvest"     # "reinvest" (compounding) is the only mode used
+    months_per_year: int = 12  # Sharpe annualisation: monthly -> *sqrt(12)
+    days_per_year: float = 365.25  # CAGR year length
+    capital_mode: str = "reinvest"  # "reinvest" (compounding) is the only mode used
 
 
 @dataclass
 class PositionResult:
     """Result of a single directional leg run on fine bars."""
 
-    net_ret: pd.Series                 # per-fine-bar net return
-    equity: pd.Series                  # cumprod(1 + net_ret)
-    dd: pd.Series                      # drawdown fraction
-    daily_returns: pd.Series           # net_ret compounded to calendar days
+    net_ret: pd.Series  # per-fine-bar net return
+    equity: pd.Series  # cumprod(1 + net_ret)
+    dd: pd.Series  # drawdown fraction
+    daily_returns: pd.Series  # net_ret compounded to calendar days
     metrics: dict = field(default_factory=dict)
 
 
 # ----------------------------------------------------------------------------
 # signal -> fine-bar mapping (decide at close t, act from t + tf)
 # ----------------------------------------------------------------------------
-def map_signal_to_fine(position: pd.Series, fine_index: pd.DatetimeIndex,
-                       signal_tf: pd.Timedelta | None = None) -> pd.Series:
+def map_signal_to_fine(
+    position: pd.Series, fine_index: pd.DatetimeIndex, signal_tf: pd.Timedelta | None = None
+) -> pd.Series:
     """Map a coarse-bar signed position onto a fine-bar index, lag-safe.
 
     The decision taken at the *close* of coarse bar ``t`` only becomes effective
@@ -97,19 +101,25 @@ def map_signal_to_fine(position: pd.Series, fine_index: pd.DatetimeIndex,
     if signal_tf is None:
         signal_tf = position.index[1] - position.index[0]
     decision_time = position.index + signal_tf
-    return (pd.Series(position.values, index=decision_time)
-            .reindex(fine_index, method="ffill")
-            .fillna(0.0))
+    return (
+        pd.Series(position.values, index=decision_time)
+        .reindex(fine_index, method="ffill")
+        .fillna(0.0)
+    )
 
 
 # ----------------------------------------------------------------------------
 # directional leg
 # ----------------------------------------------------------------------------
-def run_position_backtest(fine_bars: pd.DataFrame, position: pd.Series, *,
-                          signal_tf: pd.Timedelta | None = None,
-                          funding_fn=None,
-                          config: PortfolioConfig | None = None,
-                          n_trades: int = 0) -> PositionResult:
+def run_position_backtest(
+    fine_bars: pd.DataFrame,
+    position: pd.Series,
+    *,
+    signal_tf: pd.Timedelta | None = None,
+    funding_fn: FundingFn | None = None,
+    config: PortfolioConfig | None = None,
+    n_trades: int = 0,
+) -> PositionResult:
     """Backtest one continuously-held signed position on fine bars.
 
     Parameters
@@ -154,23 +164,28 @@ def run_position_backtest(fine_bars: pd.DataFrame, position: pd.Series, *,
     dd = (equity - equity.cummax()) / equity.cummax()
     daily = to_daily(net_ret)
     metrics = _series_metrics(net_ret, equity, dd, n_trades, cfg)
-    return PositionResult(net_ret=net_ret, equity=equity, dd=dd,
-                          daily_returns=daily, metrics=metrics)
+    return PositionResult(
+        net_ret=net_ret, equity=equity, dd=dd, daily_returns=daily, metrics=metrics
+    )
 
 
 # ----------------------------------------------------------------------------
 # carry / funding-harvest leg
 # ----------------------------------------------------------------------------
-def carry_leg_returns(funding_daily: pd.Series, leverage: pd.Series,
-                      cost_day: float = 2e-5) -> pd.Series:
+def carry_leg_returns(
+    funding_daily: pd.Series, leverage: pd.Series, cost_day: float = 2e-5
+) -> pd.Series:
     """Daily returns of a (levered) delta-neutral funding-carry leg.
 
     ``funding_daily`` is the per-day funding sum a 1x delta-neutral book earns;
     ``leverage`` is the (possibly time-varying / gated) carry leverage on the
     same index.  Returns ``leverage * (funding_daily - cost_day)``.
     """
-    lev = leverage.reindex(funding_daily.index) if not leverage.index.equals(
-        funding_daily.index) else leverage
+    lev = (
+        leverage.reindex(funding_daily.index)
+        if not leverage.index.equals(funding_daily.index)
+        else leverage
+    )
     return (lev * (funding_daily - cost_day)).rename("carry")
 
 
@@ -179,11 +194,12 @@ def carry_leg_returns(funding_daily: pd.Series, leverage: pd.Series,
 # ----------------------------------------------------------------------------
 def to_daily(net_ret: pd.Series) -> pd.Series:
     """Compound a fine per-bar net-return series into calendar-day returns."""
-    return ((1.0 + net_ret).groupby(net_ret.index.normalize()).prod() - 1.0)
+    return (1.0 + net_ret).groupby(net_ret.index.normalize()).prod() - 1.0
 
 
-def combine_daily(legs: list[pd.Series], weights: list[float],
-                  index: pd.DatetimeIndex | None = None) -> pd.Series:
+def combine_daily(
+    legs: list[pd.Series], weights: list[float], index: pd.DatetimeIndex | None = None
+) -> pd.Series:
     """Weight-combine several daily return legs onto a common index.
 
     Each leg is reindexed to ``index`` (default: the first leg's index) and
@@ -195,7 +211,7 @@ def combine_daily(legs: list[pd.Series], weights: list[float],
         raise ValueError("legs and weights must be the same length")
     idx = legs[0].index if index is None else index
     out = pd.Series(0.0, index=idx)
-    for leg, w in zip(legs, weights):
+    for leg, w in zip(legs, weights, strict=False):
         out = out + w * leg.reindex(idx).fillna(0.0)
     return out.rename("combo")
 
@@ -203,8 +219,9 @@ def combine_daily(legs: list[pd.Series], weights: list[float],
 # ----------------------------------------------------------------------------
 # metrics
 # ----------------------------------------------------------------------------
-def portfolio_metrics(daily_returns: pd.Series, n_trades: int = 0, *,
-                      config: PortfolioConfig | None = None) -> dict:
+def portfolio_metrics(
+    daily_returns: pd.Series, n_trades: int = 0, *, config: PortfolioConfig | None = None
+) -> dict:
     """Headline metrics for a daily return series (CAGR, MaxDD, Sharpe, ...).
 
     Sharpe is computed on calendar-month returns annualised by
@@ -234,8 +251,9 @@ def portfolio_metrics(daily_returns: pd.Series, n_trades: int = 0, *,
     return out
 
 
-def _series_metrics(net_ret: pd.Series, equity: pd.Series, dd: pd.Series,
-                    n_trades: int, cfg: PortfolioConfig) -> dict:
+def _series_metrics(
+    net_ret: pd.Series, equity: pd.Series, dd: pd.Series, n_trades: int, cfg: PortfolioConfig
+) -> dict:
     """Metrics computed on the *native* (fine) return series of a single leg.
 
     Mirrors the per-leg reporting block of the research engine: equity-based

@@ -59,10 +59,28 @@ __all__ = [
 _BE_DISABLED = 900.0
 
 _TRADE_COLUMNS = [
-    "file", "signal_time", "side", "lots", "entry_time", "exit_time", "hold_sec",
-    "close5", "atr5", "entry_offset", "stop_dist", "take_dist", "entry_price",
-    "exit_price", "exit_reason", "pnl_before", "commission", "pnl",
-    "mfe_money", "mae_money", "r_mult", "risk_money",
+    "file",
+    "signal_time",
+    "side",
+    "lots",
+    "entry_time",
+    "exit_time",
+    "hold_sec",
+    "close5",
+    "atr5",
+    "entry_offset",
+    "stop_dist",
+    "take_dist",
+    "entry_price",
+    "exit_price",
+    "exit_reason",
+    "pnl_before",
+    "commission",
+    "pnl",
+    "mfe_money",
+    "mae_money",
+    "r_mult",
+    "risk_money",
 ]
 
 
@@ -250,7 +268,9 @@ def _idx_range(t_ns: np.ndarray, t_start: np.datetime64, t_end: np.datetime64) -
     return i0, i1
 
 
-def _first_leq(t_ns, p, i0, i1, level):
+def _first_leq(
+    t_ns: np.ndarray, p: np.ndarray, i0: int, i1: int, level: float
+) -> pd.Timestamp | None:
     if i1 <= i0:
         return None
     seg = p[i0:i1]
@@ -260,7 +280,9 @@ def _first_leq(t_ns, p, i0, i1, level):
     return pd.Timestamp(t_ns[i0 + int(np.argmax(mask))])
 
 
-def _first_geq(t_ns, p, i0, i1, level):
+def _first_geq(
+    t_ns: np.ndarray, p: np.ndarray, i0: int, i1: int, level: float
+) -> pd.Timestamp | None:
     if i1 <= i0:
         return None
     seg = p[i0:i1]
@@ -270,7 +292,7 @@ def _first_geq(t_ns, p, i0, i1, level):
     return pd.Timestamp(t_ns[i0 + int(np.argmax(mask))])
 
 
-def _slice_min_max(p, j0, j1):
+def _slice_min_max(p: np.ndarray, j0: int, j1: int) -> tuple[float, float]:
     if j1 <= j0:
         return np.nan, np.nan
     seg = p[j0:j1]
@@ -369,7 +391,8 @@ def _run_segment(
             sl0 = entry_price - stop_dist
             t_be = (
                 _first_geq(t_ns, p, j0, j1, entry_price + be_trigger)
-                if be_trigger < _BE_DISABLED else None
+                if be_trigger < _BE_DISABLED
+                else None
             )
             if t_be is None:
                 t_sl0 = _first_leq(t_ns, p, j0, j1, sl0)
@@ -381,7 +404,8 @@ def _run_segment(
             t_tp = _first_geq(t_ns, p, j0, j1, tp)
             eod_time = (
                 _session_eod(signal_time, cfg)
-                if (cfg.session_enabled and cfg.session_force_exit) else None
+                if (cfg.session_enabled and cfg.session_force_exit)
+                else None
             )
             if eod_time is not None and eod_time <= entry_time:
                 eod_time = None
@@ -410,7 +434,8 @@ def _run_segment(
             sl0 = entry_price + stop_dist
             t_be = (
                 _first_leq(t_ns, p, j0, j1, entry_price - be_trigger)
-                if be_trigger < _BE_DISABLED else None
+                if be_trigger < _BE_DISABLED
+                else None
             )
             if t_be is None:
                 t_sl0 = _first_geq(t_ns, p, j0, j1, sl0)
@@ -422,7 +447,8 @@ def _run_segment(
             t_tp = _first_leq(t_ns, p, j0, j1, tp)
             eod_time = (
                 _session_eod(signal_time, cfg)
-                if (cfg.session_enabled and cfg.session_force_exit) else None
+                if (cfg.session_enabled and cfg.session_force_exit)
+                else None
             )
             if eod_time is not None and eod_time <= entry_time:
                 eod_time = None
@@ -470,30 +496,32 @@ def _run_segment(
         risk_money = stop_dist * cfg.point_value
         r_mult = (pnl_before / risk_money) if (risk_money and risk_money > 0) else np.nan
 
-        trades.append(FuturesTrade(
-            file=fname,
-            signal_time=signal_time,
-            side=side,
-            lots=int(lots),
-            entry_time=pd.Timestamp(entry_time),
-            exit_time=pd.Timestamp(exit_time),
-            hold_sec=float(hold_sec),
-            close5=float(close5),
-            atr5=float(sig.atr),
-            entry_offset=float(entry_offset),
-            stop_dist=float(stop_dist),
-            take_dist=float(take_dist),
-            entry_price=float(entry_price),
-            exit_price=float(exit_price),
-            exit_reason=exit_reason,
-            pnl_before=float(pnl_before),
-            commission=float(commission),
-            pnl=float(pnl),
-            mfe_money=float(mfe_money) if np.isfinite(mfe_money) else np.nan,
-            mae_money=float(mae_money) if np.isfinite(mae_money) else np.nan,
-            r_mult=float(r_mult) if np.isfinite(r_mult) else np.nan,
-            risk_money=float(risk_money),
-        ))
+        trades.append(
+            FuturesTrade(
+                file=fname,
+                signal_time=signal_time,
+                side=side,
+                lots=int(lots),
+                entry_time=pd.Timestamp(entry_time),
+                exit_time=pd.Timestamp(exit_time),
+                hold_sec=float(hold_sec),
+                close5=float(close5),
+                atr5=float(sig.atr),
+                entry_offset=float(entry_offset),
+                stop_dist=float(stop_dist),
+                take_dist=float(take_dist),
+                entry_price=float(entry_price),
+                exit_price=float(exit_price),
+                exit_reason=exit_reason,
+                pnl_before=float(pnl_before),
+                commission=float(commission),
+                pnl=float(pnl),
+                mfe_money=float(mfe_money) if np.isfinite(mfe_money) else np.nan,
+                mae_money=float(mae_money) if np.isfinite(mae_money) else np.nan,
+                r_mult=float(r_mult) if np.isfinite(r_mult) else np.nan,
+                risk_money=float(risk_money),
+            )
+        )
 
         if cfg.one_position_at_a_time:
             in_pos_until = pd.Timestamp(exit_time)

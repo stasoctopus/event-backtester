@@ -48,10 +48,28 @@ BASE_CFG = FuturesConfig(
 )
 
 TRADE_COLUMNS = [
-    "file", "signal_time", "side", "lots", "entry_time", "exit_time", "hold_sec",
-    "close5", "atr5", "entry_offset", "stop_dist", "take_dist", "entry_price",
-    "exit_price", "exit_reason", "pnl_before", "commission", "pnl",
-    "mfe_money", "mae_money", "r_mult", "risk_money",
+    "file",
+    "signal_time",
+    "side",
+    "lots",
+    "entry_time",
+    "exit_time",
+    "hold_sec",
+    "close5",
+    "atr5",
+    "entry_offset",
+    "stop_dist",
+    "take_dist",
+    "entry_price",
+    "exit_price",
+    "exit_reason",
+    "pnl_before",
+    "commission",
+    "pnl",
+    "mfe_money",
+    "mae_money",
+    "r_mult",
+    "risk_money",
 ]
 
 

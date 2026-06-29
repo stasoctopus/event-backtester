@@ -29,15 +29,6 @@ from .futures import (
     FuturesTrade,
     run_futures_backtest,
 )
-from .portfolio import (
-    PortfolioConfig,
-    PositionResult,
-    carry_leg_returns,
-    combine_daily,
-    portfolio_metrics,
-    run_position_backtest,
-    to_daily,
-)
 from .metrics import (
     calmar,
     max_drawdown,
@@ -48,6 +39,15 @@ from .metrics import (
     summary_table,
     total_return,
     win_rate,
+)
+from .portfolio import (
+    PortfolioConfig,
+    PositionResult,
+    carry_leg_returns,
+    combine_daily,
+    portfolio_metrics,
+    run_position_backtest,
+    to_daily,
 )
 from .strategy import Direction, Signal, SMACrossover, Strategy
 from .walkforward import (

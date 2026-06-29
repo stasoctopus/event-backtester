@@ -174,8 +174,11 @@ def test_funding_is_additive_and_clip_charges_only_shorts() -> None:
     assert base.net_ret.values == pytest.approx(np.zeros(4))
 
     rate = 0.001
+
     # "longs-on-spot" hybrid: funding (here a credit) only touches the short side.
-    funding_fn = lambda fine_index, pos_fine: -rate * pos_fine.clip(upper=0)
+    def funding_fn(fine_index, pos_fine):
+        return -rate * pos_fine.clip(upper=0)
+
     res = run_position_backtest(
         bars, position, signal_tf=ONE_MIN, funding_fn=funding_fn, config=cfg
     )
@@ -192,7 +195,9 @@ def test_funding_constant_is_added_to_every_bar() -> None:
     bars = _flat_bars(fine, 100.0)
     position = _pos_on_fine([0.0, 0.0, 0.0], fine)
     const = 2.5e-4
-    funding_fn = lambda fine_index, pos_fine: pd.Series(const, index=fine_index)
+
+    def funding_fn(fine_index, pos_fine):
+        return pd.Series(const, index=fine_index)
 
     res = run_position_backtest(bars, position, signal_tf=ONE_MIN, funding_fn=funding_fn)
 
@@ -323,9 +328,7 @@ def test_gbm_position_backtest_is_well_formed() -> None:
     fine = bars.to_frame()
     coarse = fine["close"].resample("30min").last()
     half = len(coarse) // 2
-    position = pd.Series(
-        np.where(np.arange(len(coarse)) < half, 1.0, -1.0), index=coarse.index
-    )
+    position = pd.Series(np.where(np.arange(len(coarse)) < half, 1.0, -1.0), index=coarse.index)
 
     res = run_position_backtest(fine, position, n_trades=1)
 
